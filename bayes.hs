@@ -45,16 +45,20 @@ tokenize = map Token . words
 countTokens :: (Num n) => [Token] -> Map.Map Token n
 countTokens = foldr (\token -> Map.insertWith (+) token 1) Map.empty
 
-tokenFrequency :: (Fractional f) => Text -> Map.Map Token f
-tokenFrequency text =
+tokenFrequency :: (Fractional f) => Int -> Text -> Map.Map Token f
+tokenFrequency vocabSize text =
   let tokens = UNK : tokenize text
       numTokens = length tokens
-      vocabSize = length $ nub tokens
       relFreqSmooth count = (count + 1) / fromIntegral (numTokens + vocabSize)
    in Map.map relFreqSmooth $ countTokens tokens
 
+countVocab :: [Document] -> Int
+countVocab = length . nub . concatMap (tokenize . snd)
+
 trainAposteriori :: [Document] -> Aposteriori
-trainAposteriori = Map.map tokenFrequency . concatDocuments
+trainAposteriori docs =
+  let vocabSize = countVocab docs
+   in Map.map (tokenFrequency vocabSize) $ concatDocuments docs
 
 train :: [Document] -> Classifier
 train = Classifier <$> trainApriori <*> trainAposteriori
