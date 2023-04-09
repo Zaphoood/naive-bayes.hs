@@ -15,11 +15,11 @@ data Token = UNK | Token String deriving (Show, Eq, Ord)
 
 type Apriori = Map.Map Label Double
 
-type Aposteriori = Map.Map Label (Map.Map Token Double)
+type Conditionals = Map.Map Label (Map.Map Token Double)
 
 data Classifier = Classifier
   { getApriori :: Apriori,
-    getAposteriori :: Aposteriori
+    getConditionals :: Conditionals
   }
   deriving (Show)
 
@@ -57,27 +57,27 @@ tokenFrequency vocabSize text =
 countVocab :: [Document] -> Int
 countVocab = length . nub . concatMap (tokenize . snd)
 
-trainAposteriori :: [Document] -> Aposteriori
-trainAposteriori docs =
+trainConditionals :: [Document] -> Conditionals
+trainConditionals docs =
   let vocabSize = countVocab docs
    in Map.map (tokenFrequency vocabSize) $ concatDocuments docs
 
 train :: [Document] -> Classifier
-train = Classifier <$> trainApriori <*> trainAposteriori
+train = Classifier <$> trainApriori <*> trainConditionals
 
-lookupTokenFreq :: Aposteriori -> Label -> Token -> Double
-lookupTokenFreq aPosteriori label token =
-  let tokenFrequencies = (aPosteriori Map.! label)
+lookupTokenFreq :: Conditionals -> Label -> Token -> Double
+lookupTokenFreq conditionals label token =
+  let tokenFrequencies = (conditionals Map.! label)
       unkFreq = (tokenFrequencies Map.! UNK)
    in fromMaybe unkFreq $ Map.lookup token tokenFrequencies
 
 -- Calculate the probability for a text to be of each label
 score :: Classifier -> String -> Map.Map Label Double
-score (Classifier aPriori aPosteriori) text =
+score (Classifier apriori conditionals) text =
   let tokens = tokenize text
-      aPostProb label = sum $ map (log . lookupTokenFreq aPosteriori label) tokens
-      probability label labelProb = log labelProb + aPostProb label
-   in Map.mapWithKey probability aPriori
+      condProbability label = sum $ map (log . lookupTokenFreq conditionals label) tokens
+      probability label labelProb = log labelProb + condProbability label
+   in Map.mapWithKey probability apriori
 
 geqBy :: (Ord b) => (a -> b) -> a -> a -> a
 geqBy f x y = if f x >= f y then x else y
@@ -95,8 +95,7 @@ trainFromInput :: [String] -> Classifier
 trainFromInput = train . linesToDocs
 
 main = do
-  (file : input) <- getArgs
-  trainData <- lines <$> readFile file
+  (filename : input) <- getArgs
+  trainData <- lines <$> readFile filename
   let classifier = trainFromInput trainData
-  -- putStrLn $ fst $ classify classifier $ unwords input
-  print $ classify classifier $ unwords input
+  print $ fst $ classify classifier $ unwords input
