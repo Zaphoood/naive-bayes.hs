@@ -1,5 +1,5 @@
 import Control.Applicative (liftA2)
-import Data.Char (toLower)
+import Data.Char (isAlpha, isSpace, toLower)
 import Data.List (maximumBy, nub)
 import Data.Map qualified as Map
 import Data.Maybe (fromMaybe)
@@ -42,7 +42,7 @@ concatDocuments = foldr insertDoc Map.empty
 
 -- Naive tokenization for now
 tokenize :: String -> [Token]
-tokenize = map Token . words . map toLower
+tokenize = map Token . filter (not . null) . map (map toLower . filter isAlpha) . words
 
 countTokens :: (Num n) => [Token] -> Map.Map Token n
 countTokens = foldr (\token -> Map.insertWith (+) token 1) Map.empty
@@ -90,8 +90,7 @@ classify classifier text =
    in (/ scoresSum) <$> maximumBy (\a b -> snd a `compare` snd b) scoresExp
 
 linesToDocs :: [String] -> [Document]
-linesToDocs (x : y : ys) = (x, y) : linesToDocs ys
-linesToDocs _ = []
+linesToDocs = map $ break isSpace
 
 trainFromInput :: [String] -> Classifier
 trainFromInput = train . linesToDocs
