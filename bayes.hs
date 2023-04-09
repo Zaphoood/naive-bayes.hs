@@ -1,9 +1,9 @@
 import Control.Applicative (liftA2)
 import Data.Char (toLower)
-import Data.List (nub)
+import Data.List (maximumBy, nub)
 import Data.Map qualified as Map
 import Data.Maybe (fromMaybe)
-import System.Environment
+import System.Environment (getArgs)
 
 type Label = String
 
@@ -84,8 +84,10 @@ geqBy f x y = if f x >= f y then x else y
 
 classify :: Classifier -> String -> (Label, Double)
 classify classifier text =
-  let scores = score classifier text
-   in Map.foldrWithKey (\key val acc -> geqBy snd (key, val) acc) ("(No labels defined)", log 0) scores
+  let scores = Map.toList $ score classifier text
+      scoresExp = map (exp <$>) scores
+      scoresSum = sum . map snd $ scoresExp
+   in (/ scoresSum) <$> maximumBy (\a b -> snd a `compare` snd b) scoresExp
 
 linesToDocs :: [String] -> [Document]
 linesToDocs (x : y : ys) = (x, y) : linesToDocs ys
@@ -98,4 +100,4 @@ main = do
   (filename : input) <- getArgs
   trainData <- lines <$> readFile filename
   let classifier = trainFromInput trainData
-  print $ fst $ classify classifier $ unwords input
+  print $ classify classifier $ unwords input
