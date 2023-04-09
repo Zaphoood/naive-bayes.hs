@@ -1,4 +1,5 @@
 import Control.Applicative (liftA2)
+import Data.Char (toLower)
 import Data.List (nub)
 import Data.Map qualified as Map
 import Data.Maybe (fromMaybe)
@@ -40,7 +41,8 @@ concatDocuments = foldr insertDoc Map.empty
     insertDoc (label, content) = Map.insertWith (\a b -> unwords [a, b]) label content
 
 -- Naive tokenization for now
-tokenize = map Token . words
+tokenize :: String -> [Token]
+tokenize = map Token . words . map toLower
 
 countTokens :: (Num n) => [Token] -> Map.Map Token n
 countTokens = foldr (\token -> Map.insertWith (+) token 1) Map.empty
