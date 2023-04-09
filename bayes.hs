@@ -3,7 +3,7 @@ import Data.Char (isAlpha, isSpace, toLower)
 import Data.List (maximumBy, nub)
 import Data.Map qualified as Map
 import Data.Maybe (fromMaybe)
-import System.Environment (getArgs)
+import System.Environment (getArgs, getProgName)
 
 type Label = String
 
@@ -95,8 +95,18 @@ linesToDocs = map $ break isSpace
 trainFromInput :: [String] -> Classifier
 trainFromInput = train . linesToDocs
 
-main = do
-  (filename : input) <- getArgs
+classifyFromFile filename input = do
   trainData <- lines <$> readFile filename
   let classifier = trainFromInput trainData
   print $ classify classifier $ unwords input
+
+usage = do
+  progname <- getProgName
+  putStrLn $ "Usage: " ++ progname ++ " PATH QUERY"
+
+main = do
+  argv <- getArgs
+  case argv of
+    (filename : input)
+      | not $ null input -> classifyFromFile filename input
+    _ -> usage
