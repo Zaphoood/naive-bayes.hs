@@ -64,8 +64,8 @@ lookupTokenFreq aPosteriori label token = fromMaybe 0 $ Map.lookup token (aPoste
 score :: Classifier -> String -> Map.Map Label Double
 score (Classifier aPriori aPosteriori) text =
   let tokens = tokenize text
-      aPostProb label = product $ map (lookupTokenFreq aPosteriori label) tokens
-      probability label aPrioProb = aPrioProb * aPostProb label
+      aPostProb label = sum $ map (log . lookupTokenFreq aPosteriori label) tokens
+      probability label aPrioProb = log aPrioProb + aPostProb label
    in Map.mapWithKey probability aPriori
 
 geqBy :: (Ord b) => (a -> b) -> a -> a -> a
@@ -74,7 +74,7 @@ geqBy f x y = if f x >= f y then x else y
 classify :: Classifier -> String -> (Label, Double)
 classify classifier text =
   let scores = score classifier text
-   in Map.foldrWithKey (\key val acc -> geqBy snd (key, val) acc) ("(No labels defined)", 0) scores
+   in Map.foldrWithKey (\key val acc -> geqBy snd (key, val) acc) ("(No labels defined)", log 0) scores
 
 linesToDocs :: [String] -> [Document]
 linesToDocs (x : y : ys) = (x, y) : linesToDocs ys
@@ -85,6 +85,6 @@ trainFromInput = train . linesToDocs
 
 main = do
   (file : input) <- getArgs
-  lines <- lines <$> readFile file
-  let classifier = trainFromInput lines
-  print $ classify classifier $ unwords input
+  trainData <- lines <$> readFile file
+  let classifier = trainFromInput trainData
+  putStrLn $ fst $ classify classifier $ unwords input
