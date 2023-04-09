@@ -2,6 +2,7 @@ import Control.Applicative (liftA2)
 import Data.Map qualified as Map
 import Data.Maybe (fromMaybe)
 import Data.Monoid
+import System.Environment
 
 type Label = String
 
@@ -74,3 +75,16 @@ classify :: Classifier -> String -> (Label, Double)
 classify classifier text =
   let scores = score classifier text
    in Map.foldrWithKey (\key val acc -> geqBy snd (key, val) acc) ("(No labels defined)", 0) scores
+
+linesToDocs :: [String] -> [Document]
+linesToDocs (x : y : ys) = (x, y) : linesToDocs ys
+linesToDocs _ = []
+
+trainFromInput :: [String] -> Classifier
+trainFromInput = train . linesToDocs
+
+main = do
+  (file : doc : _) <- getArgs
+  lines <- lines <$> readFile file
+  let c = trainFromInput lines
+  print $ classify c doc
