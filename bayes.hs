@@ -23,11 +23,10 @@ emptyClassifier = Classifier Map.empty Map.empty
 countLabels :: (Num a) => [Document] -> Map.Map Label a
 countLabels = foldr (\(label, _) -> Map.insertWith (+) label 1) Map.empty
 
-trainAPriori :: Classifier -> [Document] -> Classifier
-trainAPriori (Classifier _ aPosteriori) docs =
+trainAPriori :: [Document] -> Apriori
+trainAPriori docs =
   let numberOfDocs = length docs
-      aPriori = Map.map (/ fromIntegral numberOfDocs) $ countLabels docs
-   in Classifier aPriori aPosteriori
+   in Map.map (/ fromIntegral numberOfDocs) $ countLabels docs
 
 -- Create map of lables to all documents of each label concatenated
 concatDocuments :: [Document] -> Map.Map Label String
@@ -47,10 +46,8 @@ tokenFrequency text =
       numberOfTokens = length tokens
    in Map.map (/ fromIntegral numberOfTokens) $ countTokens tokens
 
-trainAPosteriori :: Classifier -> [Document] -> Classifier
-trainAPosteriori (Classifier aPriori _) docs =
-  let aPosteriori = Map.map tokenFrequency $ concatDocuments docs
-   in Classifier aPriori aPosteriori
+trainAPosteriori :: [Document] -> APosteriori
+trainAPosteriori docs = Map.map tokenFrequency $ concatDocuments docs
 
 train :: [Document] -> Classifier
-train docs = trainAPosteriori (trainAPriori emptyClassifier docs) docs
+train = Classifier <$> trainAPriori <*> trainAPosteriori
