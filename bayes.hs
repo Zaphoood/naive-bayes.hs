@@ -84,7 +84,7 @@ trainFromInput :: [String] -> Classifier
 trainFromInput = train . linesToDocs
 
 main = do
-  (file : doc : _) <- getArgs
+  (file : input) <- getArgs
   lines <- lines <$> readFile file
-  let c = trainFromInput lines
-  print $ classify c doc
+  let classifier = trainFromInput lines
+  print $ classify classifier $ unwords input
