@@ -25,9 +25,6 @@ data Classifier = Classifier
   }
   deriving (Show)
 
-emptyClassifier :: Classifier
-emptyClassifier = Classifier Map.empty Map.empty
-
 countLabels :: (Num n) => [Document] -> Map.Map Label n
 countLabels = foldr (\(label, _) -> Map.insertWith (+) label 1) Map.empty
 
