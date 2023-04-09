@@ -32,7 +32,7 @@ trainApriori docs =
   let numberOfDocs = length docs
    in Map.map (/ fromIntegral numberOfDocs) $ countLabels docs
 
--- Create map of lables to all documents of each label concatenated
+-- Concatenate all documents of the same label
 concatDocuments :: [Document] -> Map.Map Label Text
 concatDocuments = foldr insertDoc Map.empty
   where
@@ -56,14 +56,14 @@ trainAposteriori docs = Map.map tokenFrequency $ concatDocuments docs
 train :: [Document] -> Classifier
 train = Classifier <$> trainApriori <*> trainAposteriori
 
-getTokenFreq :: Aposteriori -> Label -> Token -> Maybe Double
-getTokenFreq aPosteriori label token = Map.lookup token (aPosteriori Map.! label)
+lookupTokenFreq :: Aposteriori -> Label -> Token -> Double
+lookupTokenFreq aPosteriori label token = fromMaybe 0 $ Map.lookup token (aPosteriori Map.! label)
 
 -- Calculate the probability for a text to be of each label
 score :: Classifier -> String -> Map.Map Label Double
 score (Classifier aPriori aPosteriori) text =
   let tokens = tokenize text
-      aPostProb label = product $ map (fromMaybe 0 . getTokenFreq aPosteriori label) tokens
+      aPostProb label = product $ map (lookupTokenFreq aPosteriori label) tokens
       probability label aPrioProb = aPrioProb * aPostProb label
    in Map.mapWithKey probability aPriori
 
@@ -73,4 +73,4 @@ geqBy f x y = if f x >= f y then x else y
 classify :: Classifier -> String -> (Label, Double)
 classify classifier text =
   let scores = score classifier text
-   in Map.foldrWithKey (\key val acc -> geqBy snd (key, val) acc) ("(No result)", 0) scores
+   in Map.foldrWithKey (\key val acc -> geqBy snd (key, val) acc) ("(No labels defined)", 0) scores
