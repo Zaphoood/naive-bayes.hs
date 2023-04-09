@@ -3,7 +3,9 @@ import Data.Char (isAlpha, isSpace, toLower)
 import Data.List (maximumBy, nub)
 import Data.Map qualified as Map
 import Data.Maybe (fromMaybe)
+import GHC.IO.Handle (hFlush)
 import System.Environment (getArgs, getProgName)
+import System.IO (stdout)
 
 type Label = String
 
@@ -95,18 +97,24 @@ linesToDocs = map $ break isSpace
 trainFromInput :: [String] -> Classifier
 trainFromInput = train . linesToDocs
 
-classifyFromFile filename input = do
+classifyFromFile filename = do
   trainData <- lines <$> readFile filename
   let classifier = trainFromInput trainData
-  print $ classify classifier $ unwords input
+  classifyInput classifier
+
+classifyInput classifier = do
+  putStr "> "
+  hFlush stdout
+  line <- getLine
+  print $ classify classifier line
+  classifyInput classifier
 
 usage = do
   progname <- getProgName
-  putStrLn $ "Usage: " ++ progname ++ " PATH QUERY"
+  putStrLn $ "Usage: " ++ progname ++ " PATH"
 
 main = do
   argv <- getArgs
   case argv of
-    (filename : input)
-      | not $ null input -> classifyFromFile filename input
+    [filename] -> classifyFromFile filename
     _ -> usage

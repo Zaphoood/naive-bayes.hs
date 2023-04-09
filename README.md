@@ -17,9 +17,10 @@ ghc --make ./bayes.hs
 
 Basic usage is
 ```
-./bayes PATH QUERY
+./bayes PATH
 ```
-Where `PATH` is a path to a file with training data (see below for format), and `QUERY` is the text that should be classified.
+Where `PATH` is a path to a file with training data (see below for format).
+You are then prompted to input a text which will be classified. Note that for large training files, the first time you enter a query, the program might take a while to respond, since it's indexing all the training data.
 
 ### Training data
 
