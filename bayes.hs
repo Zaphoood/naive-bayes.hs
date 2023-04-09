@@ -1,5 +1,7 @@
+import Control.Applicative (liftA2)
 import Data.Map qualified as Map
-import GHC (concatDocs)
+import Data.Maybe (fromMaybe)
+import Data.Monoid
 
 type Label = String
 
@@ -11,11 +13,11 @@ type Token = String
 
 type Apriori = Map.Map Label Double
 
-type APosteriori = Map.Map Label (Map.Map Token Double)
+type Aposteriori = Map.Map Label (Map.Map Token Double)
 
 data Classifier = Classifier
-  { getAPriori :: Apriori,
-    getAPosteriori :: APosteriori
+  { getApriori :: Apriori,
+    getAposteriori :: Aposteriori
   }
   deriving (Show)
 
@@ -25,8 +27,8 @@ emptyClassifier = Classifier Map.empty Map.empty
 countLabels :: (Num n) => [Document] -> Map.Map Label n
 countLabels = foldr (\(label, _) -> Map.insertWith (+) label 1) Map.empty
 
-trainAPriori :: [Document] -> Apriori
-trainAPriori docs =
+trainApriori :: [Document] -> Apriori
+trainApriori docs =
   let numberOfDocs = length docs
    in Map.map (/ fromIntegral numberOfDocs) $ countLabels docs
 
@@ -48,8 +50,27 @@ tokenFrequency text =
       numberOfTokens = length tokens
    in Map.map (/ fromIntegral numberOfTokens) $ countTokens tokens
 
-trainAPosteriori :: [Document] -> APosteriori
-trainAPosteriori docs = Map.map tokenFrequency $ concatDocuments docs
+trainAposteriori :: [Document] -> Aposteriori
+trainAposteriori docs = Map.map tokenFrequency $ concatDocuments docs
 
 train :: [Document] -> Classifier
-train = Classifier <$> trainAPriori <*> trainAPosteriori
+train = Classifier <$> trainApriori <*> trainAposteriori
+
+getTokenFreq :: Aposteriori -> Label -> Token -> Maybe Double
+getTokenFreq aPosteriori label token = Map.lookup token (aPosteriori Map.! label)
+
+-- Calculate the probability for a text to be of each label
+score :: Classifier -> String -> Map.Map Label Double
+score (Classifier aPriori aPosteriori) text =
+  let tokens = tokenize text
+      aPostProb label = product $ map (fromMaybe 0 . getTokenFreq aPosteriori label) tokens
+      probability label aPrioProb = aPrioProb * aPostProb label
+   in Map.mapWithKey probability aPriori
+
+geqBy :: (Ord b) => (a -> b) -> a -> a -> a
+geqBy f x y = if f x >= f y then x else y
+
+classify :: Classifier -> String -> (Label, Double)
+classify classifier text =
+  let scores = score classifier text
+   in Map.foldrWithKey (\key val acc -> geqBy snd (key, val) acc) ("(No result)", 0) scores
